@@ -1,0 +1,119 @@
+/* ===== Janus Automation – Ticket System Theme ===== */
+:root{
+    /* Brand */
+    --bg: #0f1720;            /* dark slate */
+    --panel: #121a23;         /* card/header */
+    --panel-2: #0c131a;       /* inputs */
+    --border: #223041;        /* subtle borders */
+    --muted: #9bb0c4;         /* secondary text */
+    --text: #e7edf5;          /* primary text */
+
+    --janus-green: #1f5a4f;
+    --janus-amber: #f0aa3a;
+    --janus-amber-2: #ffbf5d;
+
+    /* UI */
+    --focus: #6fc2ff;
+    --success: #1e7f5b;
+    --warning: #a66f20;
+    --danger:  #a23b3b;
+
+    /* Radii + shadows */
+    --r: 14px;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+    margin:0; background:var(--bg); color:var(--text);
+    font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;
+}
+
+/* Header */
+.header{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--border);
+    position: sticky; top:0; z-index:50;
+}
+.brand{
+    display:flex; align-items:center; gap:12px;
+}
+.brand img{
+    height:28px; width:auto; display:block; filter: drop-shadow(0 1px 0 rgba(0,0,0,.25));
+}
+.brand .title{
+    font-weight:700; letter-spacing:.2px;
+}
+.brand .subtitle{
+    font-weight:600; color:var(--janus-amber); margin-left:6px;
+}
+
+/* Layout */
+.wrap{max-width:1120px; margin:20px auto; padding:0 16px;}
+.card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--r);
+    padding:16px; margin-bottom:14px; box-shadow: var(--shadow);
+}
+
+/* Inputs & buttons */
+input, select, textarea{
+    width:100%; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--border); border-radius:12px; padding:10px 12px;
+    outline:none; transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus, textarea:focus{
+    border-color: var(--focus); box-shadow: 0 0 0 3px rgba(111,194,255,.15);
+}
+label{font-size:12px; color:var(--muted); display:block; margin:0 0 6px}
+
+.row{display:flex; gap:12px; flex-wrap:wrap}
+.col{flex:1; min-width:220px}
+
+.btn{
+    padding:10px 14px; border:1px solid var(--border); border-radius:12px; cursor:pointer;
+    color:var(--text); background:linear-gradient(180deg, #18222d, #131b25);
+    transition: transform .06s ease, background .2s ease, border-color .2s ease;
+}
+.btn:hover{ background:linear-gradient(180deg, #1b2733, #151e28); border-color:#2b4057 }
+.btn:active{ transform: translateY(1px) }
+.btn-primary{
+    background: linear-gradient(180deg, color-mix(in oklab, var(--janus-amber) 75%, #000 25%), var(--janus-amber));
+    border-color: color-mix(in oklab, var(--janus-amber) 65%, #000 35%);
+    color:#261a05;
+}
+.btn-primary:hover{
+    background: linear-gradient(180deg, var(--janus-amber-2), var(--janus-amber));
+}
+
+/* Pills / chips */
+.pill{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 10px; border-radius:999px; border:1px solid var(--border); margin-right:6px;
+    background:#0f1a20; color:var(--text); font-weight:600;
+}
+.priority-low{ background:#10221a; border-color:#1e3b2e; color:#a6e3c5 }
+.priority-medium{ background:#13202a; border-color:#224159; color:#b7d3ee }
+.priority-high{ background:#2b1c1c; border-color:#5b2e2e; color:#ffb3b3 }
+.priority-urgent{ background:#3a2216; border-color:#7a4a28; color:#ffd9a8 }
+
+.status-open{ background:#10221a; border-color:#1e3b2e; color:#9dd6b6 }
+.status-in_progress{ background:#172432; border-color:#2d4a66; color:#b9d8f6 }
+.status-resolved{ background:#172a22; border-color:#2a4a3e; color:#b7f6d9 }
+.status-closed{ background:#241c2a; border-color:#3f3250; color:#cbb4e9 }
+
+/* Ticket list */
+.ticket-head{
+    display:flex; justify-content:space-between; gap:8px; align-items:center;
+}
+.ticket-title{ font-weight:700; letter-spacing:.2px }
+.ticket-meta{ font-size:12px; color:var(--muted); margin-top:4px }
+
+/* Footer note */
+.footer-note{
+    text-align:center; color:var(--muted); padding:18px 0 40px;
+    border-top:1px solid var(--border); margin-top:18px;
+}
+
+/* Small helper */
+hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}

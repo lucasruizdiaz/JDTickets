@@ -94,7 +94,8 @@ function renderList() {
           </div>
         </div>
         <div>
-          <span class="pill status-${t.status}">${t.status}</span>
+          // In renderList(), keep as-is; classes already map to CSS above:
+          <span class="pill status-${t.status.replaceAll(' ', '_')}">${t.status}</span>
           <span class="pill priority-${t.priority}">${t.priority}</span>
           ${t.tags ? t.tags.split(',').map(s=>`<span class="pill">${s.trim()}</span>`).join('') : ''}
         </div>
