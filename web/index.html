@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Tickets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #0b0d10; color: #e7e7e7; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#12151a; border-bottom:1px solid #222; }
+    .btn { padding:8px 12px; border:1px solid #444; background:#1a1f26; color:#e7e7e7; border-radius:8px; cursor:pointer; }
+    .btn:hover { background:#222934; }
+    .wrap { max-width:1100px; margin: 20px auto; padding: 0 16px; }
+    .card { background:#12151a; border:1px solid #222; border-radius:12px; padding:16px; margin-bottom:12px; }
+    .row { display:flex; gap:12px; }
+    .col { flex:1; }
+    input, select, textarea { width:100%; background:#0f1318; color:#e7e7e7; border:1px solid #2a2f36; border-radius:8px; padding:8px; }
+    label { font-size:12px; color:#a5acb5; display:block; margin-bottom:6px; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; border:1px solid #333; margin-right:6px; }
+    .priority-high { background:#332020; border-color:#5c2b2b; }
+    .priority-urgent { background:#3a2020; border-color:#7a2c2c; }
+    .status-open { background:#1f2a20; border-color:#254a2f;}
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>Ticket System</strong></div>
+    <div id="userArea">
+      <button class="btn" onclick="showLogin()">Login</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="loginView" class="card" style="display:none">
+      <h3>Login</h3>
+      <div class="row">
+        <div class="col">
+          <label>Email</label>
+          <input id="loginEmail" placeholder="you@example.com">
+        </div>
+        <div class="col">
+          <label>Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••">
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button class="btn" onclick="doLogin()">Login</button>
+        <button class="btn" onclick="doRegister()">Register</button>
+      </div>
+      <div id="loginMsg" style="margin-top:8px;color:#f99;"></div>
+    </div>
+
+    <div id="appView" style="display:none">
+      <div class="card">
+        <h3>Create Ticket</h3>
+        <div class="row">
+          <div class="col">
+            <label>Title</label>
+            <input id="tTitle">
+          </div>
+          <div class="col">
+            <label>Priority</label>
+            <select id="tPriority">
+              <option>low</option><option>medium</option><option>high</option><option>urgent</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>Tags (comma separated)</label>
+            <input id="tTags" placeholder="frontend,customer">
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <label>Description</label>
+          <textarea id="tDesc" rows="3"></textarea>
+        </div>
+        <div style="margin-top:12px">
+          <button class="btn" onclick="createTicket()">Create</button>
+        </div>
+      </div>
+
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <script src="./scripts.js"></script>
+</body>
+</html>
