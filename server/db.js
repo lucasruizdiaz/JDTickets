@@ -11,6 +11,14 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('admin','agent','user')),
+  avatar_url TEXT,
+  area TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT DEFAULT '',
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS tickets (
@@ -22,10 +30,12 @@ CREATE TABLE IF NOT EXISTS tickets (
   tags TEXT DEFAULT '',
   due_date TEXT,
   assignee_id TEXT,
+  project_id TEXT NOT NULL DEFAULT 'project-default',
   created_by TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (assignee_id) REFERENCES users(id),
+  FOREIGN KEY (project_id) REFERENCES projects(id),
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS comments (
@@ -38,5 +48,44 @@ CREATE TABLE IF NOT EXISTS comments (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 `);
+
+function ensureColumn(table, column) {
+  const info = db.prepare(`PRAGMA table_info(${table})`).all();
+  const columns = info.map(row => row.name);
+  if (columns.includes(column)) return true;
+  let definition;
+  switch (`${table}.${column}`) {
+    case 'users.avatar_url':
+      definition = 'TEXT';
+      break;
+    case 'users.area':
+      definition = 'TEXT';
+      break;
+    case 'tickets.project_id':
+      definition = "TEXT NOT NULL DEFAULT 'project-default'";
+      break;
+    default:
+      return false;
+  }
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  return true;
+}
+
+ensureColumn('users', 'avatar_url');
+ensureColumn('users', 'area');
+ensureColumn('tickets', 'project_id');
+
+const ensureProjectStmt = db.prepare(`INSERT OR IGNORE INTO projects (id, name, description, created_at)
+VALUES (@id, @name, @description, @created_at)`);
+
+const defaultProjects = [
+  { id: 'project-default', name: 'General', description: 'Miscellaneous and unclassified work items' },
+  { id: 'project-automation', name: 'Automation', description: 'Automation initiatives and maintenance' },
+  { id: 'project-support', name: 'Support Desk', description: 'Customer and internal support tickets' }
+];
+
+for (const project of defaultProjects) {
+  ensureProjectStmt.run({ ...project, created_at: dayjs().toISOString() });
+}
 
 export { db, dayjs };

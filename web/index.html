@@ -13,8 +13,12 @@
     <img src="./logo.png" alt="Janus Automation Logo" />
     <div class="title">Janus Automation <span class="subtitle">Ticket System</span></div>
   </div>
-  <div id="userArea">
-    <button class="btn" onclick="showLogin()">Login</button>
+  <div class="header-actions">
+    <button id="themeToggleBtn" class="btn btn-compact header-theme-btn" type="button" onclick="toggleTheme()" aria-label="Toggle theme">Light Mode</button>
+    <button id="toggleCreateBtn" class="btn btn-compact header-create-btn" type="button" onclick="toggleCreateTicket()" aria-expanded="false" style="display:none">Create Ticket</button>
+    <div id="userArea">
+      <button class="btn" onclick="showLogin()">Login</button>
+    </div>
   </div>
 </header>
 
@@ -41,7 +45,7 @@
 
   <!-- APP -->
   <div id="appView" style="display:none">
-    <div class="card">
+    <div class="card" id="createTicketCard" style="display:none">
       <h3 style="margin:0 0 10px">Create Ticket</h3>
       <div class="row">
         <div class="col">
@@ -49,9 +53,21 @@
           <input id="tTitle">
         </div>
         <div class="col">
+          <label>Project <span class="label-required">*</span></label>
+          <select id="tProject"></select>
+        </div>
+        <div class="col">
           <label>Priority</label>
           <select id="tPriority">
             <option>low</option><option>medium</option><option>high</option><option>urgent</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="col">
+          <label>Assign To <span class="label-optional">(optional)</span></label>
+          <select id="tAssignee">
+            <option value="">Unassigned</option>
           </select>
         </div>
         <div class="col">
@@ -68,9 +84,72 @@
       </div>
     </div>
 
-    <div id="list"></div>
+    <div id="dashboardSection" class="dashboard-section" style="display:none">
+      <div class="board-toggle board-toggle-floating" role="toolbar" aria-label="Toggle board layout">
+        <button id="viewColumnsBtn" class="btn btn-compact" onclick="setViewMode('columns')">Columns</button>
+        <button id="viewRowsBtn" class="btn btn-compact" onclick="setViewMode('rows')">Rows</button>
+      </div>
+      <div id="dashboardEmpty" class="muted dashboard-empty" style="display:none;">No tickets to show.</div>
+      <div id="dashboard" class="board"></div>
+    </div>
+
+    <div id="projectManager" class="card" style="display:none"></div>
+
+    <div id="list" style="display:none"></div>
 
     <div class="footer-note">Janus Automation • Internal Helpdesk</div>
+  </div>
+</div>
+
+<div id="profilePopover" class="profile-popover" style="display:none">
+  <div class="card profile-card" id="profileCard">
+    <div class="profile-head">
+      <h3 style="margin:0">My Profile</h3>
+      <button class="profile-close" onclick="closeProfile()" aria-label="Close profile">&times;</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="col">
+        <label>Name</label>
+        <input id="profileName">
+      </div>
+      <div class="col">
+        <label>Role</label>
+        <select id="profileRole">
+          <option value="user">user</option>
+          <option value="agent">agent</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="col">
+        <label>Area</label>
+        <input id="profileArea" placeholder="Operations, Automation, Support...">
+      </div>
+      <div class="col">
+        <label>Picture URL</label>
+        <input id="profileAvatar" placeholder="https://...">
+      </div>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+      <div id="profileMsg" class="muted"></div>
+    </div>
+    <hr class="sep">
+    <div class="row">
+      <div class="col">
+        <label>Current Password</label>
+        <input id="profileCurrentPassword" type="password" autocomplete="current-password">
+      </div>
+      <div class="col">
+        <label>New Password</label>
+        <input id="profileNewPassword" type="password" autocomplete="new-password">
+      </div>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <button class="btn" onclick="changePassword()">Change Password</button>
+      <div id="passwordMsg" class="muted"></div>
+    </div>
   </div>
 </div>
 
