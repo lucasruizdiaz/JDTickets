@@ -70,23 +70,30 @@
             <option value="">Unassigned</option>
           </select>
         </div>
-        <div class="col">
-          <label>Tags (comma separated)</label>
-          <input id="tTags" placeholder="frontend,customer">
-        </div>
       </div>
-      <div class="row" style="margin-top:8px">
-        <div class="col">
-          <label>Parent Ticket <span class="label-optional">(optional)</span></label>
-          <select id="tParent" onchange="handleCreateParentChange()">
-            <option value="">No parent</option>
-          </select>
+      <div class="create-advanced-toggle">
+        <button id="toggleCreateAdvancedBtn" class="btn btn-compact" type="button" onclick="toggleCreateAdvanced()" aria-expanded="false" style="display:none">More +</button>
+      </div>
+      <div id="createAdvancedSection" class="create-advanced-section" style="display:none">
+        <div class="row">
+          <div class="col">
+            <label>Tags (comma separated)</label>
+            <input id="tTags" placeholder="frontend,customer">
+          </div>
         </div>
-        <div class="col">
-          <label>Blocking Ticket <span class="label-optional">(optional)</span></label>
-          <select id="tBlocking">
-            <option value="">No blocking dependency</option>
-          </select>
+        <div class="row" style="margin-top:8px">
+          <div class="col">
+            <label>Parent Ticket <span class="label-optional">(optional)</span></label>
+            <select id="tParent" onchange="handleCreateParentChange()">
+              <option value="">No parent</option>
+            </select>
+          </div>
+          <div class="col">
+            <label>Blocking Ticket <span class="label-optional">(optional)</span></label>
+            <select id="tBlocking">
+              <option value="">No blocking dependency</option>
+            </select>
+          </div>
         </div>
       </div>
       <div style="margin-top:8px">

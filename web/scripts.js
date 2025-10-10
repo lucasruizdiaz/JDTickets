@@ -10,6 +10,7 @@ const state = {
   selectedTicketId: null,
   projectEditorId: null,
   projectManagerVisible: false,
+  createTicketAdvancedVisible: false,
   theme: (() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
@@ -130,11 +131,18 @@ function updateCreateTicketUI() {
   }
   if (visible) {
     populateCreateTicketRelationships();
+    updateCreateAdvancedUI();
+  } else {
+    state.createTicketAdvancedVisible = false;
+    updateCreateAdvancedUI();
   }
 }
 
 function toggleCreateTicket() {
   if (!state.user) return;
+  if (state.createTicketVisible) {
+    state.createTicketAdvancedVisible = false;
+  }
   state.createTicketVisible = !state.createTicketVisible;
   updateCreateTicketUI();
   if (state.createTicketVisible) {
@@ -144,6 +152,20 @@ function toggleCreateTicket() {
       if (titleInput.select) titleInput.select();
     }
     populateCreateTicketRelationships();
+  }
+}
+
+function updateCreateAdvancedUI() {
+  const toggle = $('toggleCreateAdvancedBtn');
+  const section = $('createAdvancedSection');
+  const expanded = state.createTicketVisible && state.createTicketAdvancedVisible;
+  if (toggle) {
+    toggle.style.display = state.createTicketVisible ? 'inline-flex' : 'none';
+    toggle.textContent = expanded ? 'Less -' : 'More +';
+    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+  if (section) {
+    section.style.display = expanded ? 'block' : 'none';
   }
 }
 
@@ -219,6 +241,16 @@ function handleCreateProjectChange() {
     }
   }
   populateCreateTicketRelationships();
+  updateCreateAdvancedUI();
+}
+
+function toggleCreateAdvanced() {
+  if (!state.createTicketVisible) return;
+  state.createTicketAdvancedVisible = !state.createTicketAdvancedVisible;
+  updateCreateAdvancedUI();
+  if (state.createTicketAdvancedVisible) {
+    populateCreateTicketRelationships();
+  }
 }
 
 function toggleProjectManager() {
@@ -725,6 +757,8 @@ async function createTicket() {
     $('tPriority').value = 'medium';
     $('tParent').value = '';
     $('tBlocking').value = '';
+    state.createTicketAdvancedVisible = false;
+    updateCreateAdvancedUI();
     populateCreateTicketRelationships();
     await loadTickets();
   } catch (e) {

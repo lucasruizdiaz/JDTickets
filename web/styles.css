@@ -206,6 +206,19 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
 .label-required{color:var(--janus-amber); margin-left:4px; font-weight:600}
 .label-optional{color:var(--muted); font-size:12px; margin-left:4px}
 
+.create-advanced-toggle{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:4px;
+}
+.create-advanced-section{
+    margin-top:8px;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel-2);
+}
+
 .link-button{
     background:none;
     border:none;
