@@ -9,6 +9,7 @@ const state = {
   profileOpen: false,
   selectedTicketId: null,
   projectEditorId: null,
+  projectManagerVisible: false,
   theme: (() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
@@ -75,6 +76,24 @@ function collectDescendantIds(ticketId, acc = new Set()) {
     }
   }
   return acc;
+}
+
+function userCanManageProjects() {
+  return !!(state.user && (state.user.role === 'admin' || state.user.role === 'agent'));
+}
+
+function updateProjectManagerButton() {
+  const btn = $('toggleProjectManagerBtn');
+  if (!btn) return;
+  if (!userCanManageProjects()) {
+    btn.style.display = 'none';
+    btn.setAttribute('aria-pressed', 'false');
+    return;
+  }
+  btn.style.display = 'inline-flex';
+  const label = state.projectManagerVisible ? 'Hide Projects' : 'Edit Projects';
+  btn.textContent = label;
+  btn.setAttribute('aria-pressed', state.projectManagerVisible ? 'true' : 'false');
 }
 
 function updateThemeToggleUI() {
@@ -202,6 +221,22 @@ function handleCreateProjectChange() {
   populateCreateTicketRelationships();
 }
 
+function toggleProjectManager() {
+  if (!userCanManageProjects()) return;
+  state.projectManagerVisible = !state.projectManagerVisible;
+  if (!state.projectManagerVisible) {
+    state.projectEditorId = null;
+  }
+  renderProjectManager();
+  updateProjectManagerButton();
+  if (state.projectManagerVisible) {
+    const host = $('projectManager');
+    if (host && host.scrollIntoView) {
+      host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
 function showLogin() {
   $('loginView').style.display = 'block';
   $('appView').style.display = 'none';
@@ -243,6 +278,7 @@ function setUserArea() {
     `;
   }
   updateCreateTicketUI();
+  updateProjectManagerButton();
 }
 
 function populateProfileForm() {
@@ -284,6 +320,7 @@ async function handleAuthenticated(user) {
   state.user = user;
   state.profileOpen = false;
   state.createTicketVisible = false;
+  state.projectManagerVisible = false;
   setUserArea();
   populateProfileForm();
   renderProjectManager();
@@ -342,6 +379,7 @@ async function logout() {
   state.selectedTicketId = null;
   state.projectEditorId = null;
   state.createTicketVisible = false;
+  state.projectManagerVisible = false;
   closeProfile();
   setUserArea();
   populateProfileForm();
@@ -465,6 +503,7 @@ function renderDashboard() {
       </div>
     `;
   }).join('');
+  updateProjectManagerButton();
 }
 
 function renderTicketChip(ticket) {
@@ -810,10 +849,17 @@ async function changeBlocking(id, blockingId) {
 function renderProjectManager() {
   const host = $('projectManager');
   if (!host) return;
-  const canManage = state.user && (state.user.role === 'admin' || state.user.role === 'agent');
+  const canManage = userCanManageProjects();
   if (!canManage) {
+    state.projectManagerVisible = false;
     host.style.display = 'none';
     host.innerHTML = '';
+    updateProjectManagerButton();
+    return;
+  }
+  if (!state.projectManagerVisible) {
+    host.style.display = 'none';
+    updateProjectManagerButton();
     return;
   }
   host.style.display = 'block';
@@ -856,6 +902,7 @@ function renderProjectManager() {
       </div>
     </div>
   `;
+  updateProjectManagerButton();
 }
 
 function renderProjectAdminItem(project) {

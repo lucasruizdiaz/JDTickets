@@ -270,6 +270,10 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
     display:flex;
     gap:8px;
 }
+.board-edit-btn{
+    padding-left:12px;
+    padding-right:12px;
+}
 .btn-compact{padding:6px 10px; font-size:12px; border-radius:999px}
 .btn-active{background:#213244; border-color:#37516c}
 
