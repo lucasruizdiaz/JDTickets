@@ -80,7 +80,7 @@ function collectDescendantIds(ticketId, acc = new Set()) {
 }
 
 function userCanManageProjects() {
-  return !!(state.user && (state.user.role === 'admin' || state.user.role === 'agent'));
+  return !!state.user;
 }
 
 function updateProjectManagerButton() {
@@ -95,6 +95,16 @@ function updateProjectManagerButton() {
   const label = state.projectManagerVisible ? 'Hide Projects' : 'Edit Projects';
   btn.textContent = label;
   btn.setAttribute('aria-pressed', state.projectManagerVisible ? 'true' : 'false');
+}
+
+function canEditProject(project) {
+  if (!state.user) return false;
+  if (state.user.role === 'admin') return true;
+  return project.owner_user_id === state.user.id;
+}
+
+function canDeleteProject(project) {
+  return canEditProject(project);
 }
 
 function updateThemeToggleUI() {
@@ -305,6 +315,7 @@ function setUserArea() {
           <div class="user-name">${state.user.name}</div>
           <div class="user-meta">${state.user.role}${area}</div>
         </div>
+        <a class="btn btn-compact settings-btn" href="/settings.html">Settings</a>
         <button class="btn btn-compact logout-btn" onclick="logout()">Logout</button>
       </div>
     `;
@@ -418,7 +429,8 @@ async function logout() {
   $('dashboard').innerHTML = '';
   $('list').innerHTML = '';
   $('dashboardSection').style.display = 'none';
-  $('projectManager').style.display = 'none';
+  const projectManager = $('projectManager');
+  if (projectManager) projectManager.style.display = 'none';
   $('list').style.display = 'none';
   showLogin();
 }
@@ -470,7 +482,10 @@ function populateProjectSelect() {
   const hasCurrent = state.projects.some(p => p.id === current);
   const placeholder = `<option value="" disabled${hasCurrent ? '' : ' selected'}>Select a project</option>`;
   const options = [placeholder]
-    .concat(state.projects.map(p => `<option value="${p.id}">${p.name}</option>`));
+    .concat(state.projects.map(p => {
+      const label = p.visibility === 'private' ? `${p.name} (Private)` : p.name;
+      return `<option value="${p.id}">${escapeHtml(label)}</option>`;
+    }));
   select.innerHTML = options.join('');
   if (hasCurrent) {
     select.value = current;
@@ -487,6 +502,21 @@ function populateAssigneeSelect() {
     .concat(state.users.map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`));
   select.innerHTML = options.join('');
   select.value = '';
+}
+
+function renderProjectVisibilityControls(project) {
+  const isPrivate = project.visibility === 'private';
+  const canEdit = canEditProject(project);
+  const visibilityLabel = isPrivate ? 'Private' : 'Public';
+  if (!canEdit) {
+    return `<span class="project-visibility-badge ${isPrivate ? 'badge-private' : 'badge-public'}">${visibilityLabel}</span>`;
+  }
+  return `
+    <div class="project-visibility-toggle" role="group" aria-label="Project visibility">
+      <button type="button" class="visibility-toggle-btn ${!isPrivate ? 'visibility-toggle-btn-active' : ''}" onclick="setProjectVisibility('${project.id}','public', event)" aria-pressed="${!isPrivate}" aria-label="Set project public" title="Make project public">🌐</button>
+      <button type="button" class="visibility-toggle-btn ${isPrivate ? 'visibility-toggle-btn-active' : ''}" onclick="setProjectVisibility('${project.id}','private', event)" aria-pressed="${isPrivate}" aria-label="Set project private" title="Make project private">🔒</button>
+    </div>
+  `;
 }
 
 // Dashboard
@@ -521,15 +551,20 @@ function renderDashboard() {
     const ticketHtml = tickets.length
       ? tickets.map(renderTicketChip).join('')
       : `<div class="ticket-chip empty">No tickets</div>`;
-    const desc = project.description ? `<div class="project-description">${project.description}</div>` : '';
+    const desc = project.description ? `<div class="project-description">${escapeHtml(project.description)}</div>` : '';
+    const projectName = escapeHtml(project.name);
+    const visibilityControls = renderProjectVisibilityControls(project);
     return `
       <div class="project-block">
         <div class="project-header">
-          <div>
-            <div class="project-name">${project.name}</div>
+          <div class="project-header-main">
+            <div class="project-name">${projectName}</div>
             ${desc}
           </div>
-          <span class="project-count">${tickets.length}</span>
+          <div class="project-header-meta">
+            ${visibilityControls}
+            <span class="project-count">${tickets.length}</span>
+          </div>
         </div>
         <div class="project-body">${ticketHtml}</div>
       </div>
@@ -541,8 +576,9 @@ function renderDashboard() {
 function renderTicketChip(ticket) {
   const statusClass = `status-${ticket.status.replaceAll(' ', '_')}`;
   const selectedClass = state.selectedTicketId === ticket.id ? ' ticket-chip-selected' : '';
+  const subtaskClass = ticket.parent_ticket_id ? ' ticket-chip-subtask' : '';
   return `
-    <button type="button" class="ticket-chip${selectedClass}" onclick="selectTicket('${ticket.id}')">
+    <button type="button" class="ticket-chip${selectedClass}${subtaskClass}" onclick="selectTicket('${ticket.id}')">
       <span class="ticket-chip-title">${ticket.title}</span>
       <span class="ticket-chip-meta">
         <span class="pill priority-${ticket.priority}">${ticket.priority}</span>
@@ -877,6 +913,19 @@ async function changeBlocking(id, blockingId) {
     alert(e.message);
   } finally {
     setTimeout(loadTickets, 200);
+  }
+}
+
+async function setProjectVisibility(projectId, visibility, event) {
+  if (event) event.stopPropagation();
+  try {
+    await api(`/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ visibility })
+    });
+    await loadProjects();
+  } catch (e) {
+    alert(e.message);
   }
 }
 

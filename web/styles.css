@@ -96,6 +96,8 @@ label{font-size:12px; color:var(--muted); display:block; margin:0 0 6px}
     padding:10px 14px; border:1px solid var(--border); border-radius:12px; cursor:pointer;
     color:var(--text); background:linear-gradient(180deg, #18222d, #131b25);
     transition: transform .06s ease, background .2s ease, border-color .2s ease;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    text-decoration:none; font:inherit;
 }
 .btn:hover{ background:linear-gradient(180deg, #1b2733, #151e28); border-color:#2b4057 }
 .btn:active{ transform: translateY(1px) }
@@ -178,6 +180,8 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
 .user-name{font-weight:600}
 .user-meta{font-size:12px; color:var(--muted)}
 .logout-btn{margin-left:auto}
+.settings-btn{margin-left:auto}
+.settings-btn + .logout-btn{margin-left:8px}
 @media (max-width:640px){
     .user-info{display:none}
 }
@@ -309,11 +313,56 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
     display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
     padding-bottom:4px;
 }
+.project-header-main{flex:1; min-width:0;}
+.project-header-meta{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
 .project-name{font-weight:700; letter-spacing:.2px}
 .project-description{font-size:12px; color:var(--muted); margin-top:2px; max-width:260px}
 .project-count{
     font-size:12px; padding:4px 10px; border-radius:999px;
-    border:1px solid var(--border); color:var(--muted); background:#15202a;
+    border:1px solid var(--border); color:var(--muted); background:var(--panel-2);
+}
+.project-visibility-toggle{
+    display:inline-flex;
+    gap:4px;
+}
+.visibility-toggle-btn{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:4px 10px;
+    cursor:pointer;
+    font-size:12px;
+    line-height:1;
+}
+.visibility-toggle-btn:hover{
+    border-color:var(--focus);
+}
+.visibility-toggle-btn:focus-visible{
+    outline:2px solid var(--focus);
+    outline-offset:2px;
+}
+.visibility-toggle-btn-active{
+    background:var(--focus);
+    color:#0b1a2c;
+}
+.project-visibility-badge{
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+}
+.badge-private{
+    background:rgba(183,66,66,0.14);
+    border-color:color-mix(in srgb, var(--danger) 45%, var(--border));
+    color:var(--danger);
+}
+.badge-public{
+    background:rgba(33,50,68,0.12);
+    color:var(--muted);
 }
 .project-body{display:flex; flex-direction:column; gap:8px; padding-top:4px}
 .dashboard-empty{margin-bottom:16px}
@@ -358,6 +407,68 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
 }
 button.ticket-chip{
     font:inherit;
+}
+.ticket-chip-subtask{
+    margin-left:16px;
+}
+.board-rows .ticket-chip-subtask{
+    margin-left:24px;
+}
+
+.settings-wrap{display:flex; flex-direction:column; gap:16px; margin-top:20px;}
+.settings-card-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+.settings-form{margin-top:8px;}
+.settings-form-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:12px;
+}
+.file-input-label{
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+}
+.user-admin-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+.user-admin-item{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+    background:var(--panel-2);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+.user-admin-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+.btn-danger{
+    background:linear-gradient(180deg, color-mix(in oklab, var(--danger) 75%, #000 25%), var(--danger));
+    border-color:color-mix(in oklab, var(--danger) 65%, #000 35%);
+    color:#fff;
+}
+.btn-danger:hover{
+    background:linear-gradient(180deg, color-mix(in oklab, var(--danger) 85%, #000 15%), var(--danger));
+}
+.user-admin-empty{
+    padding:16px;
+    border:1px dashed var(--border);
+    border-radius:12px;
+    text-align:center;
+    color:var(--muted);
 }
 
 .project-admin-head{

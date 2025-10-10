@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Janus Automation – Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="header">
+  <div class="brand">
+    <img src="./logo.png" alt="Janus Automation Logo" />
+    <div class="title">Janus Automation <span class="subtitle">Settings</span></div>
+  </div>
+  <div class="header-actions">
+    <a class="btn btn-compact header-create-btn" href="/">Dashboard</a>
+    <button id="themeToggleBtn" class="btn btn-compact header-theme-btn" type="button" aria-label="Toggle theme">Light Mode</button>
+    <button id="logoutBtn" class="btn btn-compact" type="button">Logout</button>
+  </div>
+</header>
+
+<div class="wrap settings-wrap">
+  <div class="card" id="settingsIntro">
+    <h3 style="margin:0 0 4px;">Workspace Settings</h3>
+    <p class="muted" style="margin:0;">Manage projects, users, and backups. Sections are available based on your role.</p>
+    <p id="settingsIntroMeta" class="muted" style="margin:8px 0 0;"></p>
+  </div>
+
+  <div id="projectsSection" class="card">
+    <div class="settings-card-head">
+      <h3 style="margin:0;">Projects</h3>
+      <span class="muted">Owners & admins</span>
+    </div>
+    <div id="projectsRestricted" class="muted" style="display:none;">Sign in to manage your projects.</div>
+    <div id="projectsManager" style="display:none;">
+      <p class="muted" style="margin:0 0 8px;">Public projects are visible to everyone. Private projects are only visible to you and administrators.</p>
+      <form id="projectForm" class="settings-form" autocomplete="off">
+        <input type="hidden" id="projectFormId">
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Name</label>
+            <input id="projectFormName" placeholder="Project name" required>
+          </div>
+          <div class="col">
+            <label>Description</label>
+            <textarea id="projectFormDesc" rows="2" placeholder="Describe this project"></textarea>
+          </div>
+          <div class="col">
+            <label>Visibility</label>
+            <select id="projectFormVisibility">
+              <option value="public">public</option>
+              <option value="private">private</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-form-actions">
+          <button class="btn btn-primary" type="submit">Save Project</button>
+          <button class="btn btn-compact" type="button" id="projectFormCancelBtn">Clear</button>
+        </div>
+      </form>
+      <div id="projectAdminMsg" class="muted" style="margin-top:8px;"></div>
+      <div style="margin-top:16px;">
+        <h4 style="margin:0 0 8px;">Existing projects</h4>
+        <div id="projectAdminList" class="project-admin-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="usersSection" class="card">
+    <div class="settings-card-head">
+      <h3 style="margin:0;">Users</h3>
+      <span class="muted">Admins only</span>
+    </div>
+    <div id="usersRestricted" class="muted" style="display:none;">You need admin access to manage users.</div>
+    <div id="userManager" style="display:none;">
+      <form id="userCreateForm" class="settings-form" autocomplete="off">
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Email</label>
+            <input id="userCreateEmail" type="email" placeholder="user@example.com" required>
+          </div>
+          <div class="col">
+            <label>Name</label>
+            <input id="userCreateName" placeholder="Full name" required>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Password</label>
+            <input id="userCreatePassword" type="password" placeholder="At least 6 characters" required>
+          </div>
+          <div class="col">
+            <label>Role</label>
+            <select id="userCreateRole">
+              <option value="user">user</option>
+              <option value="agent">agent</option>
+              <option value="admin">admin</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <div class="col">
+            <label>Area</label>
+            <input id="userCreateArea" placeholder="Operations, Automation...">
+          </div>
+          <div class="col">
+            <label>Avatar URL</label>
+            <input id="userCreateAvatar" placeholder="https://...">
+          </div>
+        </div>
+        <div class="settings-form-actions">
+          <button class="btn btn-primary" type="submit">Create User</button>
+        </div>
+      </form>
+      <div id="userCreateMsg" class="muted" style="margin-top:8px;"></div>
+      <div style="margin-top:16px;">
+        <h4 style="margin:0 0 8px;">Existing users</h4>
+        <div id="userList" class="user-admin-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="backupSection" class="card">
+    <div class="settings-card-head">
+      <h3 style="margin:0;">Backup & Restore</h3>
+      <span class="muted">Admins only</span>
+    </div>
+    <div id="backupRestricted" class="muted" style="display:none;">You need admin access to manage backups.</div>
+    <div id="backupManager" style="display:none;">
+      <div class="settings-form-actions" style="gap:12px;">
+        <button id="downloadBackupBtn" class="btn btn-primary" type="button">Download Backup</button>
+        <label class="btn btn-compact file-input-label">
+          Restore Backup
+          <input id="restoreFileInput" type="file" accept="application/json" style="display:none;">
+        </label>
+      </div>
+      <div id="backupMsg" class="muted" style="margin-top:8px;"></div>
+      <p class="muted" style="margin-top:12px;">Backups are JSON exports of users, projects, tickets, and comments. Restoring will replace current data.</p>
+    </div>
+  </div>
+</div>
+
+<script src="./settings.js"></script>
+</body>
+</html>

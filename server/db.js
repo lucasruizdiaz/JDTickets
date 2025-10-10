@@ -19,7 +19,10 @@ CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
-  created_at TEXT NOT NULL
+  visibility TEXT NOT NULL CHECK(visibility IN ('public','private')) DEFAULT 'public',
+  owner_user_id TEXT,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (owner_user_id) REFERENCES users(id)
 );
 CREATE TABLE IF NOT EXISTS tickets (
   id TEXT PRIMARY KEY,
@@ -74,6 +77,12 @@ function ensureColumn(table, column) {
     case 'tickets.blocked_by_ticket_id':
       definition = 'TEXT';
       break;
+    case 'projects.visibility':
+      definition = "TEXT NOT NULL DEFAULT 'public'";
+      break;
+    case 'projects.owner_user_id':
+      definition = 'TEXT';
+      break;
     default:
       return false;
   }
@@ -86,18 +95,20 @@ ensureColumn('users', 'area');
 ensureColumn('tickets', 'project_id');
 ensureColumn('tickets', 'parent_ticket_id');
 ensureColumn('tickets', 'blocked_by_ticket_id');
+ensureColumn('projects', 'visibility');
+ensureColumn('projects', 'owner_user_id');
 
-const ensureProjectStmt = db.prepare(`INSERT OR IGNORE INTO projects (id, name, description, created_at)
-VALUES (@id, @name, @description, @created_at)`);
+const ensureProjectStmt = db.prepare(`INSERT OR IGNORE INTO projects (id, name, description, visibility, owner_user_id, created_at)
+VALUES (@id, @name, @description, @visibility, @owner_user_id, @created_at)`);
 
 const defaultProjects = [
-  { id: 'project-default', name: 'General', description: 'Miscellaneous and unclassified work items' },
-  { id: 'project-automation', name: 'Automation', description: 'Automation initiatives and maintenance' },
-  { id: 'project-support', name: 'Support Desk', description: 'Customer and internal support tickets' }
+  { id: 'project-default', name: 'General', description: 'Miscellaneous and unclassified work items', visibility: 'public' },
+  { id: 'project-automation', name: 'Automation', description: 'Automation initiatives and maintenance', visibility: 'public' },
+  { id: 'project-support', name: 'Support Desk', description: 'Customer and internal support tickets', visibility: 'public' }
 ];
 
 for (const project of defaultProjects) {
-  ensureProjectStmt.run({ ...project, created_at: dayjs().toISOString() });
+  ensureProjectStmt.run({ ...project, owner_user_id: null, created_at: dayjs().toISOString() });
 }
 
 export { db, dayjs };
