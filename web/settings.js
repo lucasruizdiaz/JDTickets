@@ -24,8 +24,19 @@ async function api(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...options
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  let data;
+  try {
+    data = await res.json();
+  } catch (_) {
+    data = {};
+  }
+  if (!res.ok) {
+    const error = new Error(data.error || res.statusText || 'Request failed');
+    error.status = res.status;
+    error.path = path;
+    error.details = data;
+    throw error;
+  }
   return data;
 }
 
@@ -146,19 +157,24 @@ function renderProjectManager() {
   listHost.innerHTML = state.projects.map(renderProjectAdminItem).join('');
 }
 
+function projectVisibilityIcon(isPrivate) {
+  return isPrivate ? '🔒' : '🌐';
+}
+
+function projectVisibilityLabel(isPrivate) {
+  return isPrivate ? 'Private project' : 'Public project';
+}
+
 function renderProjectVisibilityControl(project) {
   const isPrivate = project.visibility === 'private';
   const canEdit = canEditProject(project);
-  const label = isPrivate ? 'Private' : 'Public';
+  const icon = projectVisibilityIcon(isPrivate);
+  const label = projectVisibilityLabel(isPrivate);
   if (!canEdit) {
-    return `<span class="project-visibility-badge ${isPrivate ? 'badge-private' : 'badge-public'}">${label}</span>`;
+    return `<span class="project-visibility-badge ${isPrivate ? 'badge-private' : 'badge-public'}" role="img" aria-label="${label}" title="${label}">${icon}</span>`;
   }
-  return `
-    <div class="project-visibility-toggle" role="group" aria-label="Project visibility">
-      <button type="button" class="visibility-toggle-btn ${!isPrivate ? 'visibility-toggle-btn-active' : ''}" onclick="setProjectVisibility('${project.id}','public', event)" aria-pressed="${!isPrivate}" aria-label="Set project public" title="Make project public">🌐</button>
-      <button type="button" class="visibility-toggle-btn ${isPrivate ? 'visibility-toggle-btn-active' : ''}" onclick="setProjectVisibility('${project.id}','private', event)" aria-pressed="${isPrivate}" aria-label="Set project private" title="Make project private">🔒</button>
-    </div>
-  `;
+  const actionLabel = isPrivate ? 'Make project public' : 'Make project private';
+  return `<button type="button" class="visibility-toggle-btn visibility-toggle-btn-single ${isPrivate ? 'badge-private' : 'badge-public'}" onclick="toggleProjectVisibility('${project.id}', event)" aria-pressed="${isPrivate ? 'true' : 'false'}" aria-label="${label}. Click to ${actionLabel.toLowerCase()}." title="${label} – click to ${actionLabel.toLowerCase()}">${icon}</button>`;
 }
 
 function renderProjectAdminItem(project) {
@@ -338,22 +354,31 @@ async function deleteProject(id) {
   }
 }
 
-async function setProjectVisibility(projectId, visibility, event) {
+async function updateProjectVisibility(projectId, visibility) {
+  await api(`/projects/${projectId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ visibility })
+  });
+  await loadProjects();
+}
+
+async function toggleProjectVisibility(projectId, event) {
   if (event) event.stopPropagation();
   const project = state.projects.find(p => p.id === projectId);
   if (!project || !canEditProject(project)) {
     setMessage('projectAdminMsg', 'You do not have permission to change that project.', 'error');
     return;
   }
+  const nextVisibility = project.visibility === 'private' ? 'public' : 'private';
   try {
-    await api(`/projects/${projectId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ visibility })
-    });
-    await loadProjects();
+    await updateProjectVisibility(projectId, nextVisibility);
     setMessage('projectAdminMsg', 'Project updated.', 'success');
   } catch (e) {
-    setMessage('projectAdminMsg', e.message, 'error');
+    const suffix = e.status ? ` (HTTP ${e.status})` : '';
+    const message = e.status === 403
+      ? `Access forbidden${suffix}. You do not have permission to change that project. ${e.message ? `Details: ${e.message}` : ''}`.trim()
+      : `Failed to update project${suffix}. ${e.message ?? ''}`.trim();
+    setMessage('projectAdminMsg', message, 'error');
   }
 }
 
@@ -453,7 +478,12 @@ async function downloadBackup() {
     URL.revokeObjectURL(url);
     setMessage('backupMsg', 'Backup downloaded.', 'success');
   } catch (e) {
-    setMessage('backupMsg', e.message, 'error');
+    const suffix = e.status ? ` (HTTP ${e.status})` : '';
+    if (e.status === 403) {
+      setMessage('backupMsg', `Access forbidden${suffix}. Only administrators can download backups. ${e.message ? `Details: ${e.message}` : ''}`.trim(), 'error');
+    } else {
+      setMessage('backupMsg', `Failed to download backup${suffix}. ${e.message ?? ''}`.trim(), 'error');
+    }
   }
 }
 
@@ -472,7 +502,12 @@ async function handleRestoreFile(event) {
     setMessage('backupMsg', result.warning ? result.warning : 'Backup restored.', 'success');
     await Promise.all([loadProjects(), loadUsers()]);
   } catch (e) {
-    setMessage('backupMsg', e.message, 'error');
+    const suffix = e.status ? ` (HTTP ${e.status})` : '';
+    if (e.status === 403) {
+      setMessage('backupMsg', `Access forbidden${suffix}. Only administrators can restore backups. ${e.message ? `Details: ${e.message}` : ''}`.trim(), 'error');
+    } else {
+      setMessage('backupMsg', `Failed to restore backup${suffix}. ${e.message ?? ''}`.trim(), 'error');
+    }
   } finally {
     event.target.value = '';
   }
@@ -490,12 +525,23 @@ async function loadProjects() {
     renderProjectManager();
     return;
   }
-  const { items } = await api('/projects');
-  state.projects = items;
-  if (state.projectEditorId && !state.projects.some(p => p.id === state.projectEditorId)) {
-    state.projectEditorId = null;
+  try {
+    const { items } = await api('/projects');
+    state.projects = items;
+    if (state.projectEditorId && !state.projects.some(p => p.id === state.projectEditorId)) {
+      state.projectEditorId = null;
+    }
+    renderProjectManager();
+    setMessage('projectAdminMsg', '');
+  } catch (e) {
+    console.error('Failed to load projects', e);
+    const suffix = e.status ? ` (HTTP ${e.status})` : '';
+    const message = e.status === 403
+      ? `Access forbidden${suffix} while loading projects. Confirm that your account owns the project or has administrator rights. ${e.message ? `Details: ${e.message}` : ''}`.trim()
+      : `Failed to load projects${suffix}. ${e.message ?? ''}`.trim();
+    renderProjectManager();
+    setMessage('projectAdminMsg', message, 'error');
   }
-  renderProjectManager();
 }
 
 async function loadUsers() {
@@ -549,7 +595,7 @@ async function boot() {
 window.startProjectCreate = startProjectCreate;
 window.startProjectEdit = startProjectEdit;
 window.deleteProject = deleteProject;
-window.setProjectVisibility = setProjectVisibility;
+window.toggleProjectVisibility = toggleProjectVisibility;
 window.saveUser = saveUser;
 window.resetUser = resetUser;
 window.removeUser = removeUser;

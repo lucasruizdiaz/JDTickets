@@ -337,6 +337,10 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
     cursor:pointer;
     font-size:12px;
     line-height:1;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:32px;
 }
 .visibility-toggle-btn:hover{
     border-color:var(--focus);
@@ -349,11 +353,18 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
     background:var(--focus);
     color:#0b1a2c;
 }
+.visibility-toggle-btn-single{
+    padding:4px 8px;
+}
 .project-visibility-badge{
     font-size:12px;
     padding:4px 10px;
     border-radius:999px;
     border:1px solid var(--border);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:32px;
 }
 .badge-private{
     background:rgba(183,66,66,0.14);
@@ -361,7 +372,8 @@ hr.sep{border:none; border-top:1px solid var(--border); margin:14px 0}
     color:var(--danger);
 }
 .badge-public{
-    background:rgba(33,50,68,0.12);
+    background:transparent;
+    border-color:color-mix(in srgb, var(--muted) 40%, var(--border));
     color:var(--muted);
 }
 .project-body{display:flex; flex-direction:column; gap:8px; padding-top:4px}

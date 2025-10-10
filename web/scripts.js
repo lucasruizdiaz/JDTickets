@@ -35,8 +35,19 @@ async function api(path, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...options
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
+  let data;
+  try {
+    data = await res.json();
+  } catch (_) {
+    data = {};
+  }
+  if (!res.ok) {
+    const error = new Error(data.error || res.statusText || 'Request failed');
+    error.status = res.status;
+    error.path = path;
+    error.details = data;
+    throw error;
+  }
   return data;
 }
 
@@ -441,15 +452,25 @@ async function loadInitialData() {
 
 // Data fetchers
 async function loadProjects() {
-  const { items } = await api('/projects');
-  state.projects = items;
-  if (state.projectEditorId && !state.projects.some(p => p.id === state.projectEditorId)) {
-    state.projectEditorId = null;
+  try {
+    const { items } = await api('/projects');
+    state.projects = items;
+    if (state.projectEditorId && !state.projects.some(p => p.id === state.projectEditorId)) {
+      state.projectEditorId = null;
+    }
+    populateProjectSelect();
+    renderDashboard();
+    renderTickets();
+    renderProjectManager();
+  } catch (e) {
+    console.error('Failed to load projects', e);
+    const suffix = e.status ? ` (HTTP ${e.status})` : '';
+    const message = e.status === 403
+      ? `Access forbidden${suffix} while loading projects. Use a project owner or administrator account. ${e.message ? `Details: ${e.message}` : ''}`.trim()
+      : `Failed to load projects${suffix}. ${e.message ?? ''}`.trim();
+    renderProjectManager();
+    setMessage('projectAdminMsg', message, 'error');
   }
-  populateProjectSelect();
-  renderDashboard();
-  renderTickets();
-  renderProjectManager();
 }
 
 async function loadUsers() {
@@ -504,19 +525,24 @@ function populateAssigneeSelect() {
   select.value = '';
 }
 
+function projectVisibilityIcon(isPrivate) {
+  return isPrivate ? '🔒' : '🌐';
+}
+
+function projectVisibilityLabel(isPrivate) {
+  return isPrivate ? 'Private project' : 'Public project';
+}
+
 function renderProjectVisibilityControls(project) {
   const isPrivate = project.visibility === 'private';
   const canEdit = canEditProject(project);
-  const visibilityLabel = isPrivate ? 'Private' : 'Public';
+  const icon = projectVisibilityIcon(isPrivate);
+  const visibilityLabel = projectVisibilityLabel(isPrivate);
   if (!canEdit) {
-    return `<span class="project-visibility-badge ${isPrivate ? 'badge-private' : 'badge-public'}">${visibilityLabel}</span>`;
+    return `<span class="project-visibility-badge ${isPrivate ? 'badge-private' : 'badge-public'}" role="img" aria-label="${visibilityLabel}" title="${visibilityLabel}">${icon}</span>`;
   }
-  return `
-    <div class="project-visibility-toggle" role="group" aria-label="Project visibility">
-      <button type="button" class="visibility-toggle-btn ${!isPrivate ? 'visibility-toggle-btn-active' : ''}" onclick="setProjectVisibility('${project.id}','public', event)" aria-pressed="${!isPrivate}" aria-label="Set project public" title="Make project public">🌐</button>
-      <button type="button" class="visibility-toggle-btn ${isPrivate ? 'visibility-toggle-btn-active' : ''}" onclick="setProjectVisibility('${project.id}','private', event)" aria-pressed="${isPrivate}" aria-label="Set project private" title="Make project private">🔒</button>
-    </div>
-  `;
+  const actionLabel = isPrivate ? 'Make project public' : 'Make project private';
+  return `<button type="button" class="visibility-toggle-btn visibility-toggle-btn-single ${isPrivate ? 'badge-private' : 'badge-public'}" onclick="toggleProjectVisibility('${project.id}', event)" aria-pressed="${isPrivate ? 'true' : 'false'}" aria-label="${visibilityLabel}. Click to ${actionLabel.toLowerCase()}." title="${visibilityLabel} – click to ${actionLabel.toLowerCase()}">${icon}</button>`;
 }
 
 // Dashboard
@@ -916,8 +942,7 @@ async function changeBlocking(id, blockingId) {
   }
 }
 
-async function setProjectVisibility(projectId, visibility, event) {
-  if (event) event.stopPropagation();
+async function updateProjectVisibility(projectId, visibility) {
   try {
     await api(`/projects/${projectId}`, {
       method: 'PATCH',
@@ -925,8 +950,22 @@ async function setProjectVisibility(projectId, visibility, event) {
     });
     await loadProjects();
   } catch (e) {
-    alert(e.message);
+    const suffix = e.status ? ` (HTTP ${e.status})` : '';
+    const details = e.message ? ` Details: ${e.message}` : '';
+    if (e.status === 403) {
+      alert(`Access forbidden${suffix}. You do not have permission to change this project.${details}`);
+    } else {
+      alert(`Failed to update project visibility${suffix}.${details}`);
+    }
   }
+}
+
+async function toggleProjectVisibility(projectId, event) {
+  if (event) event.stopPropagation();
+  const project = state.projects.find(p => p.id === projectId);
+  if (!project) return;
+  const nextVisibility = project.visibility === 'private' ? 'public' : 'private';
+  await updateProjectVisibility(projectId, nextVisibility);
 }
 
 function renderProjectManager() {
