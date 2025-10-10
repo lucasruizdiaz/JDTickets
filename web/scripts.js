@@ -52,6 +52,31 @@ function setMessage(id, message, type) {
   if (type === 'error') el.classList.add('text-error');
 }
 
+function formatStatusLabel(status = '') {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function ticketOptionLabel(ticket) {
+  const status = formatStatusLabel(ticket.status ?? '');
+  const shortId = ticket.id ? ticket.id.slice(0, 8) : '';
+  return `${ticket.title} (#${shortId}) • ${status}`;
+}
+
+function getTicketById(id) {
+  if (!id) return null;
+  return state.tickets.find(ticket => ticket.id === id) || null;
+}
+
+function collectDescendantIds(ticketId, acc = new Set()) {
+  for (const ticket of state.tickets) {
+    if (ticket.parent_ticket_id === ticketId && !acc.has(ticket.id)) {
+      acc.add(ticket.id);
+      collectDescendantIds(ticket.id, acc);
+    }
+  }
+  return acc;
+}
+
 function updateThemeToggleUI() {
   const btn = $('themeToggleBtn');
   if (!btn) return;
@@ -84,6 +109,9 @@ function updateCreateTicketUI() {
     btn.setAttribute('aria-expanded', visible ? 'true' : 'false');
     btn.textContent = visible ? 'Close Form' : 'Create Ticket';
   }
+  if (visible) {
+    populateCreateTicketRelationships();
+  }
 }
 
 function toggleCreateTicket() {
@@ -96,7 +124,82 @@ function toggleCreateTicket() {
       titleInput.focus();
       if (titleInput.select) titleInput.select();
     }
+    populateCreateTicketRelationships();
   }
+}
+
+function populateCreateTicketRelationships() {
+  const parentSelect = $('tParent');
+  const blockingSelect = $('tBlocking');
+  if (!parentSelect && !blockingSelect) return;
+  const projectSelect = $('tProject');
+  const projectId = projectSelect ? projectSelect.value : '';
+  const parentValue = parentSelect ? parentSelect.value : '';
+  const blockingValue = blockingSelect ? blockingSelect.value : '';
+  const ticketsSorted = [...state.tickets].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+
+  if (parentSelect) {
+    const eligibleParents = ticketsSorted.filter(ticket => {
+      if (!projectId) return true;
+      return ticket.project_id === projectId;
+    });
+    const options = ['<option value="">No parent</option>']
+      .concat(eligibleParents.map(ticket => `<option value="${ticket.id}">${escapeHtml(ticketOptionLabel(ticket))}</option>`));
+    parentSelect.innerHTML = options.join('');
+    if (parentValue && eligibleParents.some(ticket => ticket.id === parentValue)) {
+      parentSelect.value = parentValue;
+    } else {
+      parentSelect.value = '';
+    }
+  }
+
+  if (blockingSelect) {
+    const parentSelection = parentSelect ? parentSelect.value : '';
+    const eligibleBlocking = ticketsSorted.filter(ticket => ticket.id !== parentSelection);
+    const options = ['<option value="">No blocking dependency</option>']
+      .concat(eligibleBlocking.map(ticket => `<option value="${ticket.id}">${escapeHtml(ticketOptionLabel(ticket))}</option>`));
+    blockingSelect.innerHTML = options.join('');
+    if (blockingValue && eligibleBlocking.some(ticket => ticket.id === blockingValue)) {
+      blockingSelect.value = blockingValue;
+    } else {
+      blockingSelect.value = '';
+    }
+  }
+}
+
+function handleCreateParentChange() {
+  const parentSelect = $('tParent');
+  const projectSelect = $('tProject');
+  const blockingSelect = $('tBlocking');
+  if (!parentSelect || !projectSelect) return;
+  const parentId = parentSelect.value;
+  if (!parentId) {
+    populateCreateTicketRelationships();
+    return;
+  }
+  const parentTicket = getTicketById(parentId);
+  if (parentTicket) {
+    projectSelect.value = parentTicket.project_id ?? '';
+    if (blockingSelect && blockingSelect.value === parentId) {
+      blockingSelect.value = '';
+    }
+  }
+  populateCreateTicketRelationships();
+}
+
+function handleCreateProjectChange() {
+  const projectSelect = $('tProject');
+  const parentSelect = $('tParent');
+  if (!projectSelect || !parentSelect) return;
+  const projectId = projectSelect.value;
+  const parentId = parentSelect.value;
+  if (parentId) {
+    const parentTicket = getTicketById(parentId);
+    if (!parentTicket || parentTicket.project_id !== projectId) {
+      parentSelect.value = '';
+    }
+  }
+  populateCreateTicketRelationships();
 }
 
 function showLogin() {
@@ -280,6 +383,7 @@ async function loadTickets() {
   if (state.selectedTicketId && !state.tickets.some(t => t.id === state.selectedTicketId)) {
     state.selectedTicketId = null;
   }
+  populateCreateTicketRelationships();
   renderDashboard();
   renderTickets();
 }
@@ -303,6 +407,7 @@ function populateProjectSelect() {
   } else {
     select.value = '';
   }
+  populateCreateTicketRelationships();
 }
 
 function populateAssigneeSelect() {
@@ -376,6 +481,67 @@ function renderTicketChip(ticket) {
   `;
 }
 
+function buildParentOptionsHTML(ticket) {
+  const options = ['<option value="">No parent</option>'];
+  const disallowed = collectDescendantIds(ticket.id);
+  disallowed.add(ticket.id);
+  const eligible = state.tickets
+    .filter(t => !disallowed.has(t.id) && t.project_id === ticket.project_id)
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+  for (const candidate of eligible) {
+    const selected = candidate.id === ticket.parent_ticket_id ? ' selected' : '';
+    options.push(`<option value="${candidate.id}"${selected}>${escapeHtml(ticketOptionLabel(candidate))}</option>`);
+  }
+  return options.join('');
+}
+
+function buildBlockingOptionsHTML(ticket) {
+  const options = ['<option value="">No blocking dependency</option>'];
+  const eligible = state.tickets
+    .filter(t => t.id !== ticket.id)
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+  for (const candidate of eligible) {
+    const selected = candidate.id === ticket.blocked_by_ticket_id ? ' selected' : '';
+    options.push(`<option value="${candidate.id}"${selected}>${escapeHtml(ticketOptionLabel(candidate))}</option>`);
+  }
+  return options.join('');
+}
+
+function renderBlockingNotice(ticket) {
+  if (!ticket.blocked_by_ticket_id) return '';
+  const blocking = getTicketById(ticket.blocked_by_ticket_id);
+  if (!blocking) {
+    return `<div class="blocking-note text-error">Blocking ticket was not found.</div>`;
+  }
+  const statusClass = ['resolved', 'closed'].includes(blocking.status) ? 'text-success' : 'text-error';
+  const statusLabel = formatStatusLabel(blocking.status);
+  return `
+    <div class="blocking-note ${statusClass}">
+      Blocked by <button type="button" class="link-button" onclick="selectTicket('${blocking.id}')">${escapeHtml(blocking.title)} (#${blocking.id.slice(0, 8)})</button>
+      • ${statusLabel}
+    </div>
+  `;
+}
+
+function renderSubtaskList(ticket) {
+  const children = state.tickets
+    .filter(t => t.parent_ticket_id === ticket.id)
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+  if (!children.length) {
+    return '<div class="muted">No subtasks yet.</div>';
+  }
+  const items = children.map(child => {
+    const statusLabel = formatStatusLabel(child.status);
+    return `
+      <li>
+        <button type="button" class="link-button" onclick="selectTicket('${child.id}')">${escapeHtml(child.title)} (#${child.id.slice(0, 8)})</button>
+        <span class="subtask-status">${statusLabel}</span>
+      </li>
+    `;
+  });
+  return `<ul class="subtask-list">${items.join('')}</ul>`;
+}
+
 function selectTicket(ticketId) {
   if (state.selectedTicketId === ticketId) {
     state.selectedTicketId = null;
@@ -405,6 +571,11 @@ function renderTickets() {
   }
   root.style.display = 'block';
   const assigneeName = t.assignee_name || 'Unassigned';
+  const parentOptions = buildParentOptionsHTML(t);
+  const blockingOptions = buildBlockingOptionsHTML(t);
+  const blockingNote = renderBlockingNotice(t);
+  const subtaskCount = state.tickets.filter(child => child.parent_ticket_id === t.id).length;
+  const subtasksHtml = renderSubtaskList(t);
   const projectOptions = state.projects.length
     ? state.projects.map(p => `<option value="${p.id}" ${p.id === t.project_id ? 'selected' : ''}>${p.name}</option>`).join('')
     : '<option value="">No projects</option>';
@@ -449,6 +620,23 @@ function renderTickets() {
 
       <div class="row" style="margin-top:12px">
         <div class="col">
+          <label>Parent ticket <span class="label-optional">(optional)</span></label>
+          <select onchange="changeParent('${t.id}', this.value)">
+            ${parentOptions}
+          </select>
+        </div>
+        <div class="col">
+          <label>Blocking dependency <span class="label-optional">(optional)</span></label>
+          <select onchange="changeBlocking('${t.id}', this.value)">
+            ${blockingOptions}
+          </select>
+        </div>
+      </div>
+
+      ${blockingNote}
+
+      <div class="row" style="margin-top:12px">
+        <div class="col">
           <label>Change status</label>
           <div class="status-control">
             <select id="status-${t.id}">
@@ -465,6 +653,11 @@ function renderTickets() {
         </div>
       </div>
 
+      <div class="subtask-section">
+        <div class="subtask-head">Subtasks (${subtaskCount})</div>
+        ${subtasksHtml}
+      </div>
+
       <div id="comments-${t.id}" class="ticket-comments"></div>
     `;
   root.appendChild(div);
@@ -478,7 +671,9 @@ async function createTicket() {
     priority: $('tPriority').value,
     tags: $('tTags').value.trim(),
     project_id: $('tProject').value,
-    assignee_id: $('tAssignee').value
+    assignee_id: $('tAssignee').value,
+    parent_ticket_id: $('tParent').value || null,
+    blocked_by_ticket_id: $('tBlocking').value || null
   };
   if (!payload.title) return alert('Title required');
   if (!payload.project_id) return alert('Select a project');
@@ -489,6 +684,9 @@ async function createTicket() {
     $('tTags').value = '';
     $('tAssignee').value = '';
     $('tPriority').value = 'medium';
+    $('tParent').value = '';
+    $('tBlocking').value = '';
+    populateCreateTicketRelationships();
     await loadTickets();
   } catch (e) {
     alert(e.message);
@@ -516,26 +714,26 @@ async function sendTicketUpdate(ticketId) {
   const body = input ? input.value.trim() : '';
   const status = select ? select.value : undefined;
   const ticket = state.tickets.find(t => t.id === ticketId);
-  const requests = [];
   const shouldUpdateStatus = typeof status !== 'undefined' && (!ticket || status !== ticket.status);
 
-  if (shouldUpdateStatus) {
-    requests.push(api(`/tickets/${ticketId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status })
-    }));
+  try {
+    if (shouldUpdateStatus) {
+      await api(`/tickets/${ticketId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+    }
+
+    if (body) {
+      await api(`/tickets/${ticketId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ body })
+      });
+    }
+  } catch (e) {
+    alert(e.message);
+    return;
   }
-
-  if (body) {
-    requests.push(api(`/tickets/${ticketId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ body })
-    }));
-  }
-
-  if (!requests.length) return;
-
-  await Promise.all(requests);
 
   if (input) input.value = '';
   if (body) await loadComments(ticketId);
@@ -543,19 +741,70 @@ async function sendTicketUpdate(ticketId) {
 }
 
 async function changeAssignee(id, assignee_id) {
-  await api(`/tickets/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ assignee_id })
-  });
-  setTimeout(loadTickets, 200);
+  try {
+    await api(`/tickets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assignee_id: assignee_id || null })
+    });
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    setTimeout(loadTickets, 200);
+  }
 }
 
 async function changeProject(id, project_id) {
-  await api(`/tickets/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ project_id })
-  });
-  setTimeout(loadTickets, 200);
+  try {
+    if (!project_id) throw new Error('Project is required');
+    await api(`/tickets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ project_id })
+    });
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    setTimeout(loadTickets, 200);
+  }
+}
+
+async function changeParent(id, parentId) {
+  const parentTicketId = parentId || null;
+  const ticket = getTicketById(id);
+  if (parentTicketId && ticket && ticket.blocked_by_ticket_id === parentTicketId) {
+    alert('Blocking ticket cannot be the parent ticket.');
+    setTimeout(loadTickets, 0);
+    return;
+  }
+  try {
+    await api(`/tickets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ parent_ticket_id: parentTicketId })
+    });
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    setTimeout(loadTickets, 200);
+  }
+}
+
+async function changeBlocking(id, blockingId) {
+  const blockingTicketId = blockingId || null;
+  const ticket = getTicketById(id);
+  if (blockingTicketId && ticket && ticket.parent_ticket_id === blockingTicketId) {
+    alert('Blocking ticket cannot be the parent ticket.');
+    setTimeout(loadTickets, 0);
+    return;
+  }
+  try {
+    await api(`/tickets/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ blocked_by_ticket_id: blockingTicketId })
+    });
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    setTimeout(loadTickets, 200);
+  }
 }
 
 function renderProjectManager() {

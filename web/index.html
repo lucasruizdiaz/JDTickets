@@ -54,7 +54,7 @@
         </div>
         <div class="col">
           <label>Project <span class="label-required">*</span></label>
-          <select id="tProject"></select>
+          <select id="tProject" onchange="handleCreateProjectChange()"></select>
         </div>
         <div class="col">
           <label>Priority</label>
@@ -73,6 +73,20 @@
         <div class="col">
           <label>Tags (comma separated)</label>
           <input id="tTags" placeholder="frontend,customer">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="col">
+          <label>Parent Ticket <span class="label-optional">(optional)</span></label>
+          <select id="tParent" onchange="handleCreateParentChange()">
+            <option value="">No parent</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Blocking Ticket <span class="label-optional">(optional)</span></label>
+          <select id="tBlocking">
+            <option value="">No blocking dependency</option>
+          </select>
         </div>
       </div>
       <div style="margin-top:8px">

@@ -30,11 +30,15 @@ CREATE TABLE IF NOT EXISTS tickets (
   tags TEXT DEFAULT '',
   due_date TEXT,
   assignee_id TEXT,
+  parent_ticket_id TEXT,
+  blocked_by_ticket_id TEXT,
   project_id TEXT NOT NULL DEFAULT 'project-default',
   created_by TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (assignee_id) REFERENCES users(id),
+  FOREIGN KEY (parent_ticket_id) REFERENCES tickets(id),
+  FOREIGN KEY (blocked_by_ticket_id) REFERENCES tickets(id),
   FOREIGN KEY (project_id) REFERENCES projects(id),
   FOREIGN KEY (created_by) REFERENCES users(id)
 );
@@ -64,6 +68,12 @@ function ensureColumn(table, column) {
     case 'tickets.project_id':
       definition = "TEXT NOT NULL DEFAULT 'project-default'";
       break;
+    case 'tickets.parent_ticket_id':
+      definition = 'TEXT';
+      break;
+    case 'tickets.blocked_by_ticket_id':
+      definition = 'TEXT';
+      break;
     default:
       return false;
   }
@@ -74,6 +84,8 @@ function ensureColumn(table, column) {
 ensureColumn('users', 'avatar_url');
 ensureColumn('users', 'area');
 ensureColumn('tickets', 'project_id');
+ensureColumn('tickets', 'parent_ticket_id');
+ensureColumn('tickets', 'blocked_by_ticket_id');
 
 const ensureProjectStmt = db.prepare(`INSERT OR IGNORE INTO projects (id, name, description, created_at)
 VALUES (@id, @name, @description, @created_at)`);
